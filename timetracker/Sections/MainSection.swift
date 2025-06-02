@@ -139,7 +139,7 @@ struct SwipeableCheckInOut: View {
                     } else if let pausedAt = pausedTime {
                         let now = Date()
                         viewModel.startTime = viewModel.startTime?.addingTimeInterval(now.timeIntervalSince(pausedAt))
-                        currentTime = now // Fix the brief jump-back effect
+                        currentTime = now
                         pausedTime = nil
                     }
                 }
@@ -285,7 +285,13 @@ struct SwipeableCheckInOut: View {
                 dragOffset = value.translation.width > 0 ? maxDrag : -maxDrag
             }
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                if viewModel.isCheckedIn { checkOut() } else { checkIn() }
+                if viewModel.isCheckedIn {
+                    viewModel.isPaused = false
+                    pausedTime = nil
+                    checkOut()
+                } else {
+                    checkIn()
+                }
                 withAnimation { dragOffset = 0 }
             }
         } else {

@@ -19,13 +19,41 @@ struct HorizontalListSection: View {
         ZStack {
             if entries.isEmpty {
                 //VStack {
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        LazyHStack{
-                            HStack{
-                                Text("Add your first entry")
+                ScrollView(.horizontal, showsIndicators: false) {
+                    LazyHStack{
+                        HStack{
+                            Text("Add your first entry")
+                                .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                .foregroundColor(.secondary)
+                                .padding(20)
+                        }
+                        
+                        NavigationLink(destination: ListSection(context: managedObjectContext)) {
+                            HStack(spacing: 16) {
+                                Text("All Entries")
                                     .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.primary)
+                                Image(systemName: "chevron.right")
+                                    .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.secondary)
-                                    .padding(20)
+                            }
+                            .padding(.vertical, 20)
+                            .padding(.horizontal, 24)
+                        }
+                    }
+                }
+                //}
+                //.transition(.opacity)
+            } else {
+                ScrollViewReader { scrollProxy in
+                    ScrollView(.horizontal, showsIndicators: false) {
+                        LazyHStack(spacing: 20) {
+                            ForEach(entries.prefix(3)) { entry in
+                                HCardView(entry: entry)
+                                    .transition(.asymmetric(insertion: .scale.combined(with: .opacity), removal: .opacity))
+                                    .id(entry.objectID) // Important: assign a stable ID
+                                    .accessibilityElement(children: .combine)
+                                    .accessibilityLabel("\(entry.label ?? "Activity") at \(entry.location ?? "Location")")
                             }
                             
                             NavigationLink(destination: ListSection(context: managedObjectContext)) {
@@ -41,35 +69,15 @@ struct HorizontalListSection: View {
                                 .padding(.horizontal, 24)
                             }
                         }
+                        .padding(.top)
                     }
-                //}
-                //.transition(.opacity)
-            } else {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack(spacing: 20) {
-                        ForEach(entries.prefix(3)) { entry in
-                            HCardView(entry: entry)
-                                .transition(.asymmetric(insertion: .scale.combined(with: .opacity), removal: .opacity))
-                                .id(entry.objectID)
-                                .accessibilityElement(children: .combine)
-                                .accessibilityLabel("\(entry.label ?? "Activity") at \(entry.location ?? "Location")")
-                        }
-                        .animation(.default) // Add this to ensure UI updates smoothly
-
-                        NavigationLink(destination: ListSection(context: managedObjectContext)) {
-                            HStack(spacing: 16) {
-                                Text("All Entries")
-                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.primary)
-                                Image(systemName: "chevron.right")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.secondary)
+                    .onChange(of: entries.first?.objectID) { newID in
+                        if let newID = newID {
+                            withAnimation {
+                                scrollProxy.scrollTo(newID, anchor: .leading)
                             }
-                            .padding(.vertical, 20)
-                            .padding(.horizontal, 24)
                         }
                     }
-                    .padding(.top)
                 }
             }
         }

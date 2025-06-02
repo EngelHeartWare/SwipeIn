@@ -123,9 +123,6 @@
         }
       }
     },
-    "App Icon" : {
-
-    },
     "Appearance" : {
 
     },
@@ -165,6 +162,9 @@
           }
         }
       }
+    },
+    "Current Icon" : {
+
     },
     "Dark" : {
 
