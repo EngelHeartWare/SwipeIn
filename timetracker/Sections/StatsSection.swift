@@ -76,9 +76,9 @@ struct StatsView: View {
                 LazyVStack(spacing: 24) {
                     TimeFrameMenu(selectedTimeFrame: $selectedTimeFrame)
                     
-                    DurationList(title: "Activities", items: viewModel.activityTotals)
+                    DurationList(title: LocalizedStringKey("Activities"), items: viewModel.activityTotals)
                     
-                    DurationList(title: "Locations", items: viewModel.locationTotals)
+                    DurationList(title: LocalizedStringKey("Locations"), items: viewModel.locationTotals)
                     
                     TotalDurationCard(duration: viewModel.totalDuration)
                 }
@@ -102,14 +102,14 @@ struct TimeFrameMenu: View {
     var body: some View {
         Menu {
             ForEach(TimeFrame.allCases, id: \.self) { frame in
-                Button(frame.rawValue) {
-                    selectedTimeFrame = frame
-                    print("TimeFrame changed to: \(selectedTimeFrame)")
-                }
+                Button(frame.localizedString) { // <-- Change here!
+                            selectedTimeFrame = frame
+                            print("TimeFrame changed to: \(selectedTimeFrame.localizedString)") // Optional: print localized string
+                        }
             }
         } label: {
             HStack {
-                Text(selectedTimeFrame.rawValue)
+                Text(selectedTimeFrame.localizedString).tag(selectedTimeFrame)
                     .font(.system(size: 30, weight: .bold, design: .rounded))
                     .foregroundColor(.secondary)
                 Image(systemName: "chevron.down")
@@ -144,7 +144,7 @@ struct TotalDurationCard: View {
 }
 
 struct DurationList: View {
-    let title: String
+    let title: LocalizedStringKey // Change String to LocalizedStringKey
     let items: [(String, TimeInterval)]
     
     var body: some View {
@@ -195,11 +195,26 @@ func formatDuration(_ duration: TimeInterval) -> String {
 }
 
 enum TimeFrame: String, CaseIterable {
-    case today = "Today"
-    case thisWeek = "This Week"
-    case thisMonth = "This Month"
-    case thisYear = "This Year"
-    case overall = "Overall"
+    case today = "today"
+    case thisWeek = "thisWeek"
+    case thisMonth = "thisMonth"
+    case thisYear = "thisYear"
+    case overall = "overall"
+    
+    var localizedString: String {
+            switch self {
+            case .today:
+                return NSLocalizedString("Today", comment: "Time frame filter option for today")
+            case .thisWeek:
+                return NSLocalizedString("This Week", comment: "Time frame filter option for this week")
+            case .thisMonth:
+                return NSLocalizedString("This Month", comment: "Time frame filter option for this month")
+            case .thisYear:
+                return NSLocalizedString("This Year", comment: "Time frame filter option for this year")
+            case .overall:
+                return NSLocalizedString("Overall", comment: "Time frame filter option for overall time")
+            }
+        }
 }
 
 #Preview {
