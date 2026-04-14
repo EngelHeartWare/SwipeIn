@@ -17,96 +17,80 @@ struct ListSection: View {
     }
 
     var body: some View {
-        NavigationStack {
-            ZStack {
-           
-                        List {
-                                LazyVStack {
-                                    if viewModel.entries.isEmpty {
-                                        
-                                        HStack {
-                                            Spacer()
-                                            Text("Add your first entry")
-                                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                                .foregroundColor(.secondary)
-                                                .padding(20)
-                                            Spacer()
-                                        }
-                                    }
-                                    ForEach(viewModel.entries) { entry in
-                                        CardView(entry: entry)
-                                            .listRowBackground(Color.clear)
-                                            .listRowSeparator(.hidden)
-                                            .transition(.opacity)
-                                            .onLongPressGesture(minimumDuration: 0.2) {
-                                                HapticManager.triggerHaptic()
-                                                withAnimation {
-                                                    selectedEntry = entry
-                                                }
-                                            }
-                                    }
-                                    .onDelete(perform: deleteEntries)
+        ZStack {
+            List {
+                LazyVStack {
+                    if viewModel.entries.isEmpty {
+                        HStack {
+                            Spacer()
+                            VStack(spacing: 12) {
+                                Image(systemName: "tray")
+                                    .font(.system(size: 48, weight: .light))
+                                    .foregroundColor(.secondary)
+                                Text("Add your first entry")
+                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                    .foregroundColor(.secondary)
+                            }
+                            .padding(20)
+                            Spacer()
+                        }
+                    }
+                    ForEach(viewModel.entries) { entry in
+                        CardView(entry: entry)
+                            .listRowBackground(Color.clear)
+                            .listRowSeparator(.hidden)
+                            .transition(.opacity)
+                            .onLongPressGesture(minimumDuration: 0.2) {
+                                HapticManager.triggerHaptic()
+                                withAnimation {
+                                    selectedEntry = entry
                                 }
-                                .listRowBackground(Color.clear)
-                            
-                        }
-                        .listStyle(PlainListStyle())
-                        .background(Color(.systemGray5))
-                    
-                }
-                .background(Color(.systemGray5))
-                .navigationTitle("Entries")
-                .navigationBarTitleDisplayMode(.automatic) // Ensures title and buttons are on the same horizontal line
-                .toolbar {
-                    ToolbarItem(placement: .topBarTrailing) {
-                        Button(NSLocalizedString("Done", comment: "Button to dismiss a modal sheet")) {
-                                                dismiss() // <--- NEW ACTION: Dismiss the sheet
-                                            }
-
+                            }
                     }
-                    
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button(action: { showingManualEntry = true }) {
-                            Image(systemName: "plus")
-                        }
-                    }
-                    
-                    ToolbarItem(placement: .topBarLeading) {
-                        Button(action: { exportCSV(entries: viewModel.entries) }) {
-                            Image(systemName: "square.and.arrow.up")
-                        }
-                    }
+                    .onDelete(perform: deleteEntries)
                 }
-
-                .sheet(isPresented: $showingManualEntry) {
-                    ManualEntryView(managedObjectContext: managedObjectContext)
-                }
-                .sheet(item: $selectedEntry) { entry in
-                    EditEntryView(entry: entry, viewModel: viewModel)
-                    /*.onDisappear {
-                     viewModel.fetchEntries() // Refresh list after edit
-                     }*/
-                }
-                .onAppear {
-                    // Show the tutorial if it's the user's first time opening this view
-                    if !hasSeenListTutorial {
-                        isListTutorialVisible = true
-                    }
-                }
-                .overlay(
-                    // Show tutorial overlay if needed
-                    Group {
-                        if isListTutorialVisible {
-                            TutorialListOverlay(isListTutorialVisible: $isListTutorialVisible)
-                                .onAppear {
-                                    // Mark the tutorial as shown once the user dismisses it
-                                    hasSeenListTutorial = true
-                                }
-                        }
-                    }
-                )
-            
+                .listRowBackground(Color.clear)
+            }
+            .listStyle(PlainListStyle())
+            .background(Color(.systemGray5))
         }
+        .background(Color(.systemGray5))
+        .navigationTitle("Entries")
+        .navigationBarTitleDisplayMode(.automatic)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: { showingManualEntry = true }) {
+                    Image(systemName: "plus")
+                }
+            }
+
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: { exportCSV(entries: viewModel.entries) }) {
+                    Image(systemName: "square.and.arrow.up")
+                }
+            }
+        }
+        .sheet(isPresented: $showingManualEntry) {
+            ManualEntryView(managedObjectContext: managedObjectContext)
+        }
+        .sheet(item: $selectedEntry) { entry in
+            EditEntryView(entry: entry, viewModel: viewModel)
+        }
+        .onAppear {
+            if !hasSeenListTutorial {
+                isListTutorialVisible = true
+            }
+        }
+        .overlay(
+            Group {
+                if isListTutorialVisible {
+                    TutorialListOverlay(isListTutorialVisible: $isListTutorialVisible)
+                        .onAppear {
+                            hasSeenListTutorial = true
+                        }
+                }
+            }
+        )
     }
 
     private func deleteEntries(at offsets: IndexSet) {
@@ -274,18 +258,57 @@ struct EditEntryView: View {
         _editPlace = State(initialValue: entry.location ?? "Office")
     }
 
+    // Load available activities from UserDefaults (populated by ActivitiesView)
+    private var availableActivities: [String] {
+        var options: [String] = []
+        if let data = UserDefaults.standard.data(forKey: "activities"),
+           let decoded = try? JSONDecoder().decode([ActivityItem].self, from: data) {
+            options = decoded.map(\.name)
+        }
+        // Always include the entry's current value even if it was later deleted
+        if !options.contains(editActivity) {
+            options.insert(editActivity, at: 0)
+        }
+        return options
+    }
+
+    // Load available places from UserDefaults (populated by PlacesView)
+    private var availablePlaces: [String] {
+        var options: [String] = []
+        if let data = UserDefaults.standard.data(forKey: "places"),
+           let decoded = try? JSONDecoder().decode([PlaceItem].self, from: data) {
+            options = decoded.map(\.name)
+        }
+        if !options.contains(editPlace) {
+            options.insert(editPlace, at: 0)
+        }
+        return options
+    }
+
     var body: some View {
         NavigationStack {
             Form {
                 Section(header: Text("Labels")) {
-                    HStack {
-                        Image(systemName: "rectangle.on.rectangle")
-                        Text(editActivity)
+                    Picker(selection: $editActivity) {
+                        ForEach(availableActivities, id: \.self) { name in
+                            Text(name).tag(name)
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "rectangle.on.rectangle")
+                            Text("Activity")
+                        }
                     }
 
-                    HStack {
-                        Image(systemName: "house")
-                        Text(editPlace)
+                    Picker(selection: $editPlace) {
+                        ForEach(availablePlaces, id: \.self) { name in
+                            Text(name).tag(name)
+                        }
+                    } label: {
+                        HStack {
+                            Image(systemName: "house")
+                            Text("Place")
+                        }
                     }
                 }
 

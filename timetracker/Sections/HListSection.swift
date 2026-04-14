@@ -15,120 +15,72 @@ struct HorizontalListSection: View {
         _viewModel = StateObject(wrappedValue: TimeEntryViewModel(context: context))
     }
     
-    @State private var showAllEntriesSheet: Bool = false // New state for sheet presentation
-
     var body: some View {
-        //ZStack {
-            if entries.isEmpty {
-                //VStack {
-                ScrollView(.horizontal, showsIndicators: false) {
-                    LazyVStack{
-                        HStack{
-                            Text("Add your first entry")
-                                .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                .foregroundColor(.secondary)
-                                //.padding(20)
-                                
-                        }
-                        
-                        NavigationLink(destination: ListSection(context: managedObjectContext)) {
-                            VStack(spacing: 16) {
-                                Text("All Entries")
-                                    .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                    .foregroundColor(.primary)
-                                Image(systemName: "chevron.down")
-                                    .font(.system(size: 18, weight: .semibold))
-                                    .foregroundColor(.secondary)
-                            }
-                            .padding(.vertical, 20)
-                            //.padding(.horizontal, 24)
-                        }
+        if entries.isEmpty {
+            // Empty state: tray icon + "Add your first entry" centered, "All Entries" link at bottom
+            VStack(spacing: 0) {
+                Spacer()
+                VStack(spacing: 12) {
+                    Image(systemName: "tray")
+                        .font(.system(size: 48, weight: .light))
+                        .foregroundColor(.secondary)
+                    Text("Add your first entry")
+                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                        .foregroundColor(.secondary)
+                }
+                .frame(maxWidth: .infinity, alignment: .center)
+                Spacer()
+                NavigationLink(destination: ListSection(context: managedObjectContext)) {
+                    HStack(spacing: 16) {
+                        Text("All Entries")
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .foregroundColor(.primary)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.secondary)
                     }
                     .frame(maxWidth: .infinity)
+                    .padding(.vertical, 24)
+                    .padding(.bottom, 20)
                 }
-                //}
-                //.transition(.opacity)
-            } else {
-                //ScrollViewReader { scrollProxy in
-                    //ScrollView(.vertical, showsIndicators: false) {
-                        VStack(spacing: 0) {
-                            
-                           
-                            /*Divider()
-                            .overlay(Color.primary.opacity(0.7)) // Using .primary is good for light/dark mode adaptation
-                            // .overlay(Color.black.opacity(0.8)) // For a very dark, almost black divider
-                            .frame(height: 2) // Makes it 2 points thick. Adjust as needed.
-                            .frame(maxWidth: 50)
-                            .padding() // Adds padding all around the divider
-                            .padding(.horizontal) // Adds additional horizontal padding*/
-
-                            
-                        
-                            HStack{
-                                Text("Entries")
-                                    .font(.system(size: 30, weight: .bold, design: .rounded))
-                                    .padding()
-                                Spacer()
-                            }
-                            ForEach(entries.prefix(3)) { entry in
-                                HCardView(entry: entry)
-                                    .transition(.asymmetric(insertion: .scale.combined(with: .opacity), removal: .opacity))
-                                    .id(entry.objectID) // Important: assign a stable ID
-                                    .accessibilityElement(children: .combine)
-                                    .accessibilityLabel("\(entry.label ?? "Activity") at \(entry.location ?? "Location")")
-                            }
-                            
-                            /*NavigationLink(destination: ListSection(context: managedObjectContext)) {
-                                HStack(spacing: 16) {
-                                    Text("All Entries")
-                                        .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                        .foregroundColor(.primary)
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 18, weight: .semibold))
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.vertical, 20)
-                                .padding(.horizontal, 24)
-                            }*/
-                            
-                            Button(action: {
-                                showAllEntriesSheet.toggle() // Toggle the state to show the sheet
-                            }) {
-                                HStack(spacing: 16) {
-                                    Text("All Entries")
-                                        .font(.system(size: 20, weight: .semibold, design: .rounded))
-                                        .foregroundColor(.primary)
-                                    Image(systemName: "chevron.right")
-                                        .font(.system(size: 18, weight: .semibold))
-                                        .foregroundColor(.secondary)
-                                }
-                                .padding(.vertical, 24)
-                                .padding(.horizontal, 24)
-                                .padding(.bottom, 20)
-                            }
-                                        
-                        }
-                        //.frame(maxWidth: .infinity)
-                        //.background(Color(UIColor.systemGray5))
-                        //.cornerRadius(20)
-                        //.padding(.horizontal,3)
-                        .sheet(isPresented: $showAllEntriesSheet) {
-                                    // Present the ListSection view in a sheet
-                            ListSection(context: managedObjectContext)
-                                }
-
-                    //}
-                    /*.onChange(of: entries.first?.objectID) { newID in
-                        if let newID = newID {
-                            withAnimation {
-                                scrollProxy.scrollTo(newID, anchor: .leading)
-                            }
-                        }
-                    }*/
-
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+        } else {
+            // Populated state: entries top-aligned, "All Entries" link pushed to bottom
+            VStack(spacing: 0) {
+                HStack {
+                    Text("Entries")
+                        .font(.system(size: 30, weight: .bold, design: .rounded))
+                        .padding()
+                    Spacer()
                 }
-            //}
+                ForEach(entries.prefix(3)) { entry in
+                    HCardView(entry: entry)
+                        .transition(.asymmetric(insertion: .scale.combined(with: .opacity), removal: .opacity))
+                        .id(entry.objectID)
+                        .accessibilityElement(children: .combine)
+                        .accessibilityLabel("\(entry.label ?? "Activity") at \(entry.location ?? "Location")")
+                }
+
+                Spacer(minLength: 0)
+
+                NavigationLink(destination: ListSection(context: managedObjectContext)) {
+                    HStack(spacing: 16) {
+                        Text("All Entries")
+                            .font(.system(size: 20, weight: .semibold, design: .rounded))
+                            .foregroundColor(.primary)
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 18, weight: .semibold))
+                            .foregroundColor(.secondary)
+                    }
+                    .frame(maxWidth: .infinity)
+                    .padding(.vertical, 24)
+                    .padding(.bottom, 20)
+                }
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
+    }
 
     //}
 

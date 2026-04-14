@@ -252,6 +252,7 @@
     },
     "Done" : {
       "comment" : "Button to dismiss a modal sheet",
+      "extractionState" : "stale",
       "localizations" : {
         "de" : {
           "stringUnit" : {
