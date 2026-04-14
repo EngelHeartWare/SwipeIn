@@ -165,7 +165,7 @@ struct ActivitiesView: View {
 
 struct ActivitiesView_Previews: PreviewProvider {
     static var previews: some View {
-        NavigationView {
+        NavigationStack {
             ActivitiesView()
         }
     }

@@ -17,9 +17,8 @@ struct ListSection: View {
     }
 
     var body: some View {
-        NavigationView {
-            
-                ZStack {
+        NavigationStack {
+            ZStack {
            
                         List {
                                 LazyVStack {
@@ -188,7 +187,7 @@ struct ManualEntryView: View {
     @State private var endTime: Date = Date()
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section(header: Text("Labels")) {
                     HStack {
@@ -276,7 +275,7 @@ struct EditEntryView: View {
     }
 
     var body: some View {
-        NavigationView {
+        NavigationStack {
             Form {
                 Section(header: Text("Labels")) {
                     HStack {

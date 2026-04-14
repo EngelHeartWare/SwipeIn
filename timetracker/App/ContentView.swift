@@ -70,8 +70,7 @@ struct ContentView: View {
     @State private var isTutorialVisible: Bool = false
 
     var body: some View {
-        // The single NavigationView should wrap the entire ZStack if you want a global nav bar
-        NavigationView {
+        NavigationStack {
             GeometryReader { geometry in // <--- IMPORTANT: GeometryReader at the top level
                 let fullHeight = geometry.size.height
                 let closedPosition = fullHeight - previewHeight - handleHeight // The Y offset when the list is "closed"
@@ -205,7 +204,7 @@ struct ContentView: View {
                     }
                 }
             }
-        } // End of NavigationView
+        } // End of NavigationStack
         .onAppear {
             viewModel.initializeData(
                 managedObjectContext: managedObjectContext,
