@@ -106,6 +106,23 @@
         }
       }
     },
+    "activity.work" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Arbeit"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Work"
+          }
+        }
+      }
+    },
     "Add" : {
       "localizations" : {
         "de" : {
@@ -233,6 +250,17 @@
         }
       }
     },
+    "Done" : {
+      "comment" : "Button to dismiss a modal sheet",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Fertig"
+          }
+        }
+      }
+    },
     "Duration %@ hours and minutes" : {
       "localizations" : {
         "de" : {
@@ -335,6 +363,9 @@
           }
         }
       }
+    },
+    "Key 2" : {
+      "extractionState" : "manual"
     },
     "label_activity_name" : {
       "extractionState" : "manual",
@@ -484,6 +515,23 @@
         }
       }
     },
+    "place.office" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "de" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Büro"
+          }
+        },
+        "en" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "Office"
+          }
+        }
+      }
+    },
     "Places" : {
       "localizations" : {
         "de" : {
@@ -566,6 +614,7 @@
       }
     },
     "Swipe In" : {
+      "comment" : "Title for the main view",
       "localizations" : {
         "de" : {
           "stringUnit" : {

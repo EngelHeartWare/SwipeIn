@@ -1,7 +1,4 @@
 import SwiftUI
-import SwiftData
-import UniformTypeIdentifiers
-import SwiftUI
 import CoreData
 import UniformTypeIdentifiers
 
@@ -18,11 +15,15 @@ struct MainSection: View {
     @FetchRequest(
         sortDescriptors: [SortDescriptor(\TimeEntry.startTime, order: .reverse)]
     )
-    private var entries: FetchedResults<TimeEntry> // Fetch Core Data entries
+    
+    private var entries: FetchedResults<TimeEntry> // This automatically updates!
 
     @AppStorage("selectedActivity") private var selectedActivity: String = "Work"
     @AppStorage("selectedPlace") private var selectedPlace: String = "Office"
 
+    @StateObject private var statsViewModel = StatsViewModel()
+    @State private var selectedTimeFrame: TimeFrame = .today
+    
     var body: some View {
         VStack(spacing: 0) {
             HStack{
@@ -31,11 +32,18 @@ struct MainSection: View {
                     .padding()
                 Spacer()
             }
-            SwipeableCheckInOut(
-                viewModel: viewModel,
-                checkIn: checkIn,
-                checkOut: checkOut
-            )
+            
+            Group{
+                SwipeableCheckInOut(
+                    viewModel: viewModel,
+                    checkIn: checkIn,
+                    checkOut: checkOut,
+                    entries: Array(entries)
+                )
+            }
+            .shadow(color: Color.black.opacity(0.4), radius: 8, x: 3, y:6)
+            .padding(.vertical)
+
 
             HStack {
                 NavigationRow(icon: "rectangle.on.rectangle",
@@ -49,31 +57,54 @@ struct MainSection: View {
                               category: NSLocalizedString("Place", comment: "Category label for places")
                 )
             }
-            .padding(.bottom, 10)
+            .padding(.bottom, 100)
+            .padding(.vertical)
 
+            //Spacer()
+
+            NavigationLink(destination: StatsView()) {
+                HStack {
+                    Spacer()
+                    /*Text("Today:")
+                        .font(.headline)
+                        .foregroundColor(.secondary)*/
+                    Image(systemName: "clock.fill")
+                        .frame(minWidth:24, minHeight: 24)
+                    //Spacer()
+                    Text(formatDuration(statsViewModel.totalDuration))
+                        .font(.system(size: 24, weight: .bold, design: .rounded))
+                        .foregroundColor(.secondary)
+                    Spacer()
+                }
+                .padding(.horizontal)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding()
+            .background(Color(UIColor.systemBackground))
+            .cornerRadius(12)
+            
             Spacer()
-
-            VStack(spacing: 15) {
+            /*VStack() {
                 CustomNavigationButton(
                     icon: "chart.bar",
                     title: NSLocalizedString("Insights", comment: "Button title for the statistics tab"),
                     destination: StatsView(entries: Array(entries)) // Pass fetched entries to StatsView
                 )
             }
-            .padding()
+            .padding()*/
         }
         .frame(maxWidth: .infinity)
         .background(Color(UIColor.systemBackground))
         .cornerRadius(20, corners: [.bottomLeft, .bottomRight])
-        .toolbar {
-            // Add a settings icon to the top-right corner of the navigation bar
-            ToolbarItem(placement: .navigationBarTrailing) {
-                NavigationLink(destination: SettingsView()) {
-                    Image(systemName: "gearshape.fill") // Settings icon
-                        .font(.system(size: 24)) // Optional: to adjust the icon size
+        .onAppear {
+                    // Initial update when MainSection appears
+                    statsViewModel.updateStats(entries: entries, timeFrame: selectedTimeFrame)
                 }
-            }
-        }
+        .onChange(of: entries.count) { _ in // entries.count is a simple way to detect changes
+                    statsViewModel.updateStats(entries: entries, timeFrame: selectedTimeFrame)
+                }
+        
+        
     }
 
     private func checkIn() {
@@ -94,7 +125,9 @@ struct MainSection: View {
             do {
                 try managedObjectContext.save() // Save the context
             } catch {
+                #if DEBUG
                 print("Failed to save entry: \(error.localizedDescription)")
+                #endif
             }
         }
 
@@ -108,11 +141,13 @@ struct SwipeableCheckInOut: View {
     @ObservedObject var viewModel: MainSectionViewModel
     let checkIn: () -> Void
     let checkOut: () -> Void
+    let entries: [TimeEntry]
     @State private var dragOffset: CGFloat = 0
     @State private var currentTime = Date()
     let feedback = UIImpactFeedbackGenerator(style: .medium)
     @State private var pausedTime: Date?
     let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    @StateObject private var statsViewModel = StatsViewModel()
 
     let leftArrowSymbol = {
         if #available(iOS 16, *) {
@@ -147,7 +182,7 @@ struct SwipeableCheckInOut: View {
             buttonContent
         }
         .buttonStyle(SwipeableButtonStyle(isCheckedIn: viewModel.isCheckedIn, isPaused: viewModel.isPaused))
-        .shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 3)
+        //.shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 3)
         .cornerRadius(20)
         .frame(height: 120)
         .padding()
@@ -302,7 +337,6 @@ struct SwipeableCheckInOut: View {
     }
 }
 
-
 struct SwipeableButtonStyle: ButtonStyle {
     let isCheckedIn: Bool
     let isPaused: Bool
@@ -310,55 +344,76 @@ struct SwipeableButtonStyle: ButtonStyle {
     @AppStorage("accentColor") var accentColor: String = "Mint"
 
     func makeBody(configuration: Configuration) -> some View {
-        configuration.label
-            .background(backgroundGradient)
-            //.scaleEffect(configuration.isPressed ? 0.95 : 1.0)
-            
-            /*.onChange(of: configuration.isPressed){
-                    feedback.impactOccurred()
-            }*/
+        ZStack {
+            // 1. Base Linear Gradient (your existing color logic)
+            backgroundGradient
+                .cornerRadius(20)
+
+            // 2. Linear Gradient Overlay for a subtle sheen (simulates a curved surface reflecting light)
+            // This will replace the radial gradient for a more "bending" look.
+            LinearGradient(
+                gradient: Gradient(colors: [
+                    Color.white.opacity(0.2),  // Top-left highlight
+                    Color.clear,
+                    Color.black.opacity(0.1)   // Bottom-right subtle shadow
+                ]),
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .opacity(configuration.isPressed ? 0.0 : 1.0) // Fade out when pressed
+            .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
+            .blendMode(.overlay) // Or .softLight, .multiply for different effects
+            .cornerRadius(20) // Ensure this is also clipped to the rounded shape
+
+            // 3. Inner Shadows for depth (simulates light from top-left, shadow from bottom-right)
+            // Slightly increased shadow opacities for a stronger 3D feel
+            RoundedRectangle(cornerRadius: 20)
+                .fill(Color.clear) // Transparent fill
+                .shadow(color: Color.white.opacity(configuration.isPressed ? 0.08 : 0.3), radius: 6, x: -4, y: -4) // Top-left highlight
+                .shadow(color: Color.black.opacity(configuration.isPressed ? 0.08 : 0.3), radius: 6, x: 4, y: 4) // Bottom-right shadow
+                .mask(RoundedRectangle(cornerRadius: 20)) // Mask shadows to the rounded shape
+
+            // 4. The actual button content (label) on top of all effects
+            configuration.label
+                .foregroundColor(.white) // Assuming your label text should be white
+                .font(.headline) // Example font, adjust as needed
+        }
+        .scaleEffect(configuration.isPressed ? 0.98 : 1.0) // Apply scale to the entire ZStack
+        .animation(.easeOut(duration: 0.1), value: configuration.isPressed)
     }
-    
+
     var backgroundGradient: LinearGradient {
+        let baseColor = Color(accentColor) // Your base color from AppStorage
+
         if isCheckedIn {
             if isPaused {
                 return LinearGradient(
                     colors: [
-                        //Color(red: 0.0, green: 0.3, blue: 0.3).opacity(0.8),
-                          //   Color(red: 0.0, green: 0.3, blue: 0.3)
-                        Color(accentColor).darker(by: 20).opacity(0.5), // Makes it 20% darker
-                        Color(accentColor).darker(by: 20).opacity(0.8) // Makes it 20% darker
-
+                        baseColor.darker(by: 20).opacity(0.5),
+                        baseColor.darker(by: 20).opacity(0.8)
                     ],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
-            }
-            else{
+            } else {
                 return LinearGradient(
                     colors: [
-                        //Color(red: 0.0, green: 0.5, blue: 0.5).opacity(0.8),
-                            
-                        //Color(red: 0.0, green: 0.5, blue: 0.5)
-                        Color(accentColor).darker(by: 20).opacity(0.8), // Makes it 20% darker
-                        Color(accentColor).darker(by: 20) // Makes it 20% darker
-
+                        baseColor.darker(by: 20).opacity(0.8),
+                        baseColor.darker(by: 20)
                     ],
                     startPoint: .leading,
                     endPoint: .trailing
                 )
             }
         } else {
-            
             return LinearGradient(
                 colors: [
-                            Color(accentColor).opacity(0.6),
-                            Color(accentColor).opacity(0.8)
-                        ],
+                    baseColor.opacity(0.6),
+                    baseColor.opacity(0.8)
+                ],
                 startPoint: .leading,
                 endPoint: .trailing
             )
-            
         }
     }
 }
@@ -400,7 +455,7 @@ struct CustomNavigationButton<Destination: View>: View {
             .cornerRadius(15)
             //.shadow(color: Color.black.opacity(0.2), radius: 5, x: 0, y: 3)
         }
-        .padding(.horizontal)
+        //.padding(.horizontal)
         .scaleEffect(1.05) // Slightly larger on hover
         .animation(.easeInOut(duration: 0.2), value: true)
     }
@@ -419,17 +474,19 @@ struct NavigationRow<Destination: View>: View {
     
     var body: some View {
         NavigationLink(destination: destination) {
-            VStack {
-                HStack{
+            HStack {
+                //HStack{
+                Spacer()
+                
                     Image(systemName: icon)
-                        .font(.system(size: 14, weight: .semibold))
+                        .font(.system(size: 20, weight: .semibold))
                         .foregroundColor(.gray)
-                    Text(category)
+                    /*Text(category)
                         .font(.system(size: 14, weight: .medium, design: .rounded))
                         .foregroundColor(.gray)
-                    Spacer()
-                }
-                HStack{
+                    Spacer()*/
+                //}
+                //HStack{
                     Text(title)
                         .font(.system(size: 20, weight: .bold, design: .rounded))
                         .foregroundColor(.primary)
@@ -437,7 +494,7 @@ struct NavigationRow<Destination: View>: View {
                         .lineLimit(1)            // <-- Allow only one line
                         .truncationMode(.tail)    // <-- Add "..." at the end if too long
                     Spacer()
-                }
+                //}
             }
             .padding()
             .background(

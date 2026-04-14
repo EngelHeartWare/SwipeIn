@@ -15,8 +15,7 @@ struct SettingsView: View {
     ]
     
     var body: some View {
-        NavigationView {
-            List {
+        List {
                 Section(header: Text("Appearance")) {
                     Picker("Appearance", selection: $appearanceMode) {
                         Text("Light").tag("Light")
@@ -89,35 +88,41 @@ struct SettingsView: View {
                     }
                 }
             }
-            .navigationTitle("Settings")
-            .onAppear {
-                applyAppearanceMode()
-            }
+        .navigationTitle("Settings")
+        .onAppear {
+            applyAppearanceMode()
         }
-        
-        
     }
 
     private func updateAppIcon(to iconName: String) {
             let actualName = iconName == "AppIcon_mint" ? nil : iconName
             UIApplication.shared.setAlternateIconName(actualName) { error in
                 if let error = error {
+                    #if DEBUG
                     print("Icon change failed: \(error.localizedDescription)")
+                    #endif
                 } else {
                     selectedIcon = iconName
+                    #if DEBUG
                     print("Changed to icon: \(iconName)")
+                    #endif
                 }
             }
         }
     
     private func updateAppearance(_ mode: String) {
+        guard let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene else { return }
+        let style: UIUserInterfaceStyle
         switch mode {
         case "Light":
-            UIApplication.shared.windows.first?.overrideUserInterfaceStyle = .light
+            style = .light
         case "Dark":
-            UIApplication.shared.windows.first?.overrideUserInterfaceStyle = .dark
+            style = .dark
         default:
-            UIApplication.shared.windows.first?.overrideUserInterfaceStyle = .unspecified
+            style = .unspecified
+        }
+        for window in windowScene.windows {
+            window.overrideUserInterfaceStyle = style
         }
     }
 
@@ -128,7 +133,9 @@ struct SettingsView: View {
     private func resetTutorial() {
         hasSeenTutorial = false
         hasSeenListTutorial = false
+        #if DEBUG
         print("Tutorial has been reset")
+        #endif
     }
     
     private func updateLanguage(_ language: String) {
@@ -138,11 +145,13 @@ struct SettingsView: View {
 
         if language == "English" {
             // Logic to change app language to English
+            #if DEBUG
             print("Switching to English")
-            // e.g., update the language in your localization manager or apply custom logic
+            #endif
         } else if language == "German" {
-            // Logic to change app language to German
+            #if DEBUG
             print("Switching to German")
+            #endif
             // e.g., update the language in your localization manager or apply custom logic
         }
     }

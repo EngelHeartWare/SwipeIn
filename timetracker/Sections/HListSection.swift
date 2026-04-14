@@ -15,39 +15,61 @@ struct HorizontalListSection: View {
         _viewModel = StateObject(wrappedValue: TimeEntryViewModel(context: context))
     }
     
+    @State private var showAllEntriesSheet: Bool = false // New state for sheet presentation
+
     var body: some View {
-        ZStack {
+        //ZStack {
             if entries.isEmpty {
                 //VStack {
                 ScrollView(.horizontal, showsIndicators: false) {
-                    LazyHStack{
+                    LazyVStack{
                         HStack{
                             Text("Add your first entry")
                                 .font(.system(size: 20, weight: .semibold, design: .rounded))
                                 .foregroundColor(.secondary)
-                                .padding(20)
+                                //.padding(20)
+                                
                         }
                         
                         NavigationLink(destination: ListSection(context: managedObjectContext)) {
-                            HStack(spacing: 16) {
+                            VStack(spacing: 16) {
                                 Text("All Entries")
                                     .font(.system(size: 20, weight: .semibold, design: .rounded))
                                     .foregroundColor(.primary)
-                                Image(systemName: "chevron.right")
+                                Image(systemName: "chevron.down")
                                     .font(.system(size: 18, weight: .semibold))
                                     .foregroundColor(.secondary)
                             }
                             .padding(.vertical, 20)
-                            .padding(.horizontal, 24)
+                            //.padding(.horizontal, 24)
                         }
                     }
+                    .frame(maxWidth: .infinity)
                 }
                 //}
                 //.transition(.opacity)
             } else {
-                ScrollViewReader { scrollProxy in
-                    ScrollView(.horizontal, showsIndicators: false) {
-                        LazyHStack(spacing: 20) {
+                //ScrollViewReader { scrollProxy in
+                    //ScrollView(.vertical, showsIndicators: false) {
+                        VStack(spacing: 0) {
+                            
+                           
+                            /*Divider()
+                            .overlay(Color.primary.opacity(0.7)) // Using .primary is good for light/dark mode adaptation
+                            // .overlay(Color.black.opacity(0.8)) // For a very dark, almost black divider
+                            .frame(height: 2) // Makes it 2 points thick. Adjust as needed.
+                            .frame(maxWidth: 50)
+                            .padding() // Adds padding all around the divider
+                            .padding(.horizontal) // Adds additional horizontal padding*/
+
+                            
+                        
+                            HStack{
+                                Text("Entries")
+                                    .font(.system(size: 30, weight: .bold, design: .rounded))
+                                    .padding()
+                                Spacer()
+                            }
                             ForEach(entries.prefix(3)) { entry in
                                 HCardView(entry: entry)
                                     .transition(.asymmetric(insertion: .scale.combined(with: .opacity), removal: .opacity))
@@ -56,7 +78,7 @@ struct HorizontalListSection: View {
                                     .accessibilityLabel("\(entry.label ?? "Activity") at \(entry.location ?? "Location")")
                             }
                             
-                            NavigationLink(destination: ListSection(context: managedObjectContext)) {
+                            /*NavigationLink(destination: ListSection(context: managedObjectContext)) {
                                 HStack(spacing: 16) {
                                     Text("All Entries")
                                         .font(.system(size: 20, weight: .semibold, design: .rounded))
@@ -67,21 +89,48 @@ struct HorizontalListSection: View {
                                 }
                                 .padding(.vertical, 20)
                                 .padding(.horizontal, 24)
+                            }*/
+                            
+                            Button(action: {
+                                showAllEntriesSheet.toggle() // Toggle the state to show the sheet
+                            }) {
+                                HStack(spacing: 16) {
+                                    Text("All Entries")
+                                        .font(.system(size: 20, weight: .semibold, design: .rounded))
+                                        .foregroundColor(.primary)
+                                    Image(systemName: "chevron.right")
+                                        .font(.system(size: 18, weight: .semibold))
+                                        .foregroundColor(.secondary)
+                                }
+                                .padding(.vertical, 24)
+                                .padding(.horizontal, 24)
+                                .padding(.bottom, 20)
                             }
+                                        
                         }
-                        .padding(.top)
-                    }
-                    .onChange(of: entries.first?.objectID) { newID in
+                        //.frame(maxWidth: .infinity)
+                        //.background(Color(UIColor.systemGray5))
+                        //.cornerRadius(20)
+                        //.padding(.horizontal,3)
+                        .sheet(isPresented: $showAllEntriesSheet) {
+                                    // Present the ListSection view in a sheet
+                            ListSection(context: managedObjectContext)
+                                }
+
+                    //}
+                    /*.onChange(of: entries.first?.objectID) { newID in
                         if let newID = newID {
                             withAnimation {
                                 scrollProxy.scrollTo(newID, anchor: .leading)
                             }
                         }
-                    }
+                    }*/
+
                 }
-            }
+            //}
         }
-    }
+
+    //}
 
     private func deleteEntries(at offsets: IndexSet) {
         withAnimation {
@@ -92,7 +141,9 @@ struct HorizontalListSection: View {
             do {
                 try managedObjectContext.save() // Save changes to Core Data
             } catch {
+                #if DEBUG
                 print("Failed to delete entries: \(error.localizedDescription)")
+                #endif
             }
         }
     }

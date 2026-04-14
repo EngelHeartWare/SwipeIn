@@ -10,7 +10,8 @@ struct ListSection: View {
     @State private var selectedEntry: TimeEntry?
     @AppStorage("hasSeenListTutorial") private var hasSeenListTutorial: Bool = false
     @State private var isListTutorialVisible: Bool = false
-    
+    @Environment(\.dismiss) var dismiss
+
     init(context: NSManagedObjectContext) {
         _viewModel = ObservedObject(wrappedValue: TimeEntryViewModel(context: context))
     }
@@ -56,15 +57,22 @@ struct ListSection: View {
                 }
                 .background(Color(.systemGray5))
                 .navigationTitle("Entries")
-                .navigationBarTitleDisplayMode(.inline) // Ensures title and buttons are on the same horizontal line
+                .navigationBarTitleDisplayMode(.automatic) // Ensures title and buttons are on the same horizontal line
                 .toolbar {
-                    ToolbarItem(placement: .primaryAction) {
+                    ToolbarItem(placement: .topBarTrailing) {
+                        Button(NSLocalizedString("Done", comment: "Button to dismiss a modal sheet")) {
+                                                dismiss() // <--- NEW ACTION: Dismiss the sheet
+                                            }
+
+                    }
+                    
+                    ToolbarItem(placement: .topBarLeading) {
                         Button(action: { showingManualEntry = true }) {
                             Image(systemName: "plus")
                         }
                     }
                     
-                    ToolbarItem(placement: .primaryAction) {
+                    ToolbarItem(placement: .topBarLeading) {
                         Button(action: { exportCSV(entries: viewModel.entries) }) {
                             Image(systemName: "square.and.arrow.up")
                         }
@@ -109,50 +117,64 @@ struct ListSection: View {
     }
     
     func exportCSV(entries: [TimeEntry]) {
-        // Create the CSV header
-        var csvString = "Label,Location,Start Time,End Time\n"
-        
-        // Date formatter for a consistent format without commas
-        let dateFormatter = DateFormatter()
-        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss" // Example: 2025-04-28 14:30:00
+        // 1. Check if there is actually data to export
+        guard !entries.isEmpty else {
+            #if DEBUG
+            print("No entries to export")
+            #endif
+            // Optionally show an alert to the user here
+            return
+        }
 
-        // Append each entry's data
+        var csvString = "Label,Location,Start Time,End Time\n"
+        let dateFormatter = DateFormatter()
+        dateFormatter.dateFormat = "yyyy-MM-dd HH:mm:ss"
+
         for entry in entries {
             let label = entry.label ?? "No Label"
             let location = entry.location ?? "No Location"
-            
-            // Format the start and end times using the custom date format
             let startTime = entry.startTime != nil ? dateFormatter.string(from: entry.startTime!) : "No Start Time"
             let endTime = entry.endTime != nil ? dateFormatter.string(from: entry.endTime!) : "No End Time"
             
-            csvString.append("\(label),\(location),\(startTime),\(endTime)\n")
+            // Clean strings to prevent CSV breakage (remove commas)
+            let cleanLabel = label.replacingOccurrences(of: ",", with: " ")
+            let cleanLocation = location.replacingOccurrences(of: ",", with: " ")
+            
+            csvString.append("\(cleanLabel),\(cleanLocation),\(startTime),\(endTime)\n")
         }
 
-        // Create a URL for the file to be saved
         let fileName = "entries.csv"
         
-        // Get the URL for the document directory
-        if let path = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first {
-            let fileURL = path.appendingPathComponent(fileName)
+        // Use .cachesDirectory or .temporaryDirectory for exports
+        // This avoids cluttering the user's Documents folder permanently
+        let path = FileManager.default.temporaryDirectory
+        let fileURL = path.appendingPathComponent(fileName)
 
-            // Write the CSV string to the file
-            do {
-                try csvString.write(to: fileURL, atomically: true, encoding: .utf8)
-                // Open the share sheet to let the user save or share the file
-                shareCSV(fileURL: fileURL)
-            } catch {
-                print("Failed to write CSV file: \(error.localizedDescription)")
-            }
+        do {
+            try csvString.write(to: fileURL, atomically: true, encoding: .utf8)
+            shareCSV(fileURL: fileURL)
+        } catch {
+            #if DEBUG
+            print("Failed to write CSV file: \(error.localizedDescription)")
+            #endif
         }
     }
 
     func shareCSV(fileURL: URL) {
-        // Prepare the activity view controller to let the user share or save the CSV file
         let activityController = UIActivityViewController(activityItems: [fileURL], applicationActivities: nil)
-
-        // Present the activity view controller
-        if let topController = UIApplication.shared.windows.first?.rootViewController {
-            topController.present(activityController, animated: true, completion: nil)
+        
+        // This helps find the correct scene/window in modern iOS versions
+        if let windowScene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
+           let rootViewController = windowScene.windows.first?.rootViewController {
+            
+            // For iPad compatibility (prevents crashing)
+            if let popover = activityController.popoverPresentationController {
+                popover.sourceView = rootViewController.view
+                popover.sourceRect = CGRect(x: UIScreen.main.bounds.midX, y: UIScreen.main.bounds.midY, width: 0, height: 0)
+                popover.permittedArrowDirections = []
+            }
+            
+            rootViewController.present(activityController, animated: true, completion: nil)
         }
     }
 }
@@ -199,9 +221,11 @@ struct ManualEntryView: View {
                         let newEntry = TimeEntry(context: managedObjectContext)
                         //newEntry.objectWillChange.send()
                         
-                        // Only create a new entry if the start time and end time are set
-                       guard startTime != Date() && endTime != Date() else {
-                           print("Invalid entry time.")
+                        // Ensure end time is after start time
+                       guard endTime > startTime else {
+                           #if DEBUG
+                           print("Invalid entry: end time must be after start time.")
+                           #endif
                            return
                        }
 
@@ -214,7 +238,9 @@ struct ManualEntryView: View {
                             try managedObjectContext.save()
                             dismiss()
                         } catch {
+                            #if DEBUG
                             print("Failed to save entry: \(error.localizedDescription)")
+                            #endif
                         }
                     }
                 }
@@ -236,8 +262,8 @@ struct EditEntryView: View {
 
     @State private var startTime: Date
     @State private var endTime: Date
-    @AppStorage("selectedActivity") private var selectedActivity: String = "Work"
-    @AppStorage("selectedPlace") private var selectedPlace: String = "Office"
+    @State private var editActivity: String
+    @State private var editPlace: String
     @AppStorage("accentColor") var accentColor: String = "Mint"
 
     init(entry: TimeEntry, viewModel: TimeEntryViewModel) {
@@ -245,6 +271,8 @@ struct EditEntryView: View {
         self.viewModel = viewModel
         _startTime = State(initialValue: entry.startTime ?? Date())
         _endTime = State(initialValue: entry.endTime ?? Date())
+        _editActivity = State(initialValue: entry.label ?? "Work")
+        _editPlace = State(initialValue: entry.location ?? "Office")
     }
 
     var body: some View {
@@ -253,16 +281,12 @@ struct EditEntryView: View {
                 Section(header: Text("Labels")) {
                     HStack {
                         Image(systemName: "rectangle.on.rectangle")
-                        NavigationLink(destination: ActivitiesView()) {
-                            Text("\(selectedActivity)")
-                        }
+                        Text(editActivity)
                     }
 
                     HStack {
                         Image(systemName: "house")
-                        NavigationLink(destination: PlacesView()) {
-                            Text("\(selectedPlace)")
-                        }
+                        Text(editPlace)
                     }
                 }
 
@@ -278,7 +302,7 @@ struct EditEntryView: View {
 
                 Section {
                     Button("Save Changes") {
-                        viewModel.updateEntry(entry, newLabel: selectedActivity, newLocation: selectedPlace, newStartTime: startTime, newEndTime: endTime)
+                        viewModel.updateEntry(entry, newLabel: editActivity, newLocation: editPlace, newStartTime: startTime, newEndTime: endTime)
                         //viewModel.fetchEntries() // Ensure data reload
                         dismiss()
                     }
@@ -307,6 +331,7 @@ struct EditEntryView: View {
                     }
                 }
             }
+            
             /*.onDisappear {
                 print("List appears, reloading entries...")
                 //viewModel.fetchEntries()

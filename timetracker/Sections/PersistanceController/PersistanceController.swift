@@ -4,6 +4,8 @@ struct PersistenceController {
     static let shared = PersistenceController()
 
     let container: NSPersistentContainer
+    /// Indicates whether Core Data failed to load. Views can check this to show an error state.
+    let loadError: NSError?
 
     init(inMemory: Bool = false) {
         // Ensure the name matches your .xcdatamodeld file
@@ -14,14 +16,20 @@ struct PersistenceController {
             container.persistentStoreDescriptions.first?.url = URL(fileURLWithPath: "/dev/null")
         }
 
+        var loadStoreError: NSError?
         container.loadPersistentStores { storeDescription, error in
             if let error = error as NSError? {
+                #if DEBUG
                 print("Core Data failed to load persistent store: \(error), \(error.userInfo)")
-                fatalError("Unresolved error \(error), \(error.userInfo)")
+                #endif
+                loadStoreError = error
             } else {
+                #if DEBUG
                 print("Core Data loaded successfully: \(storeDescription.url?.absoluteString ?? "Unknown URL")")
+                #endif
             }
         }
+        self.loadError = loadStoreError
     }
 
     // Used only for previews

@@ -13,13 +13,13 @@ class TimeEntryViewModel: ObservableObject {
 
     func fetchEntries() {
         let request: NSFetchRequest<TimeEntry> = TimeEntry.fetchRequest()
-        request.sortDescriptors = [NSSortDescriptor(keyPath: \TimeEntry.startTime, ascending: false)] // Example sorting
-        DispatchQueue.main.async {
-            do {
-                self.entries = try self.context.fetch(request)
-            } catch {
-                print("Failed to fetch entries: \(error.localizedDescription)")
-            }
+        request.sortDescriptors = [NSSortDescriptor(keyPath: \TimeEntry.startTime, ascending: false)]
+        do {
+            self.entries = try self.context.fetch(request)
+        } catch {
+            #if DEBUG
+            print("Failed to fetch entries: \(error.localizedDescription)")
+            #endif
         }
     }
 
@@ -31,14 +31,12 @@ class TimeEntryViewModel: ObservableObject {
 
         do {
             try context.save()
-            DispatchQueue.main.async { [weak self] in
-                self?.objectWillChange.send() // Force UI refresh
-                self?.fetchEntries() // Reload entries
-                print("✅ Entry updated and saved!")
-
-            }
+            objectWillChange.send()
+            fetchEntries()
         } catch {
+            #if DEBUG
             print("Failed to update entry: \(error.localizedDescription)")
+            #endif
         }
     }
 
@@ -52,7 +50,9 @@ class TimeEntryViewModel: ObservableObject {
             try context.save()
             fetchEntries() // Refresh the list after saving.
         } catch {
+            #if DEBUG
             print("Failed to save changes:", error.localizedDescription)
+            #endif
         }
     }
 }

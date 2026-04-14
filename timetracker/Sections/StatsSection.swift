@@ -1,14 +1,12 @@
 import SwiftUI
 import Charts
-import SwiftData
-import UniformTypeIdentifiers
 
 class StatsViewModel: ObservableObject {
     @Published var activityTotals: [(String, TimeInterval)] = []
     @Published var locationTotals: [(String, TimeInterval)] = []
     @Published var totalDuration: TimeInterval = 0
     
-    func updateStats(entries: [TimeEntry], timeFrame: TimeFrame) {
+    func updateStats(entries: FetchedResults<TimeEntry>, timeFrame: TimeFrame) {
         DispatchQueue.global(qos: .userInitiated).async { [weak self] in
             guard let self = self else { return }
             
@@ -42,7 +40,9 @@ class StatsViewModel: ObservableObject {
             
             filteredEntries.forEach { entry in
                 guard let endTime = entry.endTime, let startTime = entry.startTime else {
+                    #if DEBUG
                     print("Skipping entry with missing dates")
+                    #endif
                     return
                 }
                 
@@ -68,30 +68,32 @@ class StatsViewModel: ObservableObject {
 struct StatsView: View {
     @StateObject private var viewModel = StatsViewModel()
     @State private var selectedTimeFrame: TimeFrame = .today
-    let entries: [TimeEntry]
     
+    @FetchRequest(
+            sortDescriptors: [SortDescriptor(\TimeEntry.startTime, order: .reverse)]
+        )
+    private var entries: FetchedResults<TimeEntry> // This is now correct!
+
     var body: some View {
-        NavigationView {
-            ScrollView {
-                LazyVStack(spacing: 24) {
-                    TimeFrameMenu(selectedTimeFrame: $selectedTimeFrame)
-                    
-                    DurationList(title: LocalizedStringKey("Activities"), items: viewModel.activityTotals)
-                    
-                    DurationList(title: LocalizedStringKey("Locations"), items: viewModel.locationTotals)
-                    
-                    TotalDurationCard(duration: viewModel.totalDuration)
-                }
-                .padding()
+        ScrollView {
+            LazyVStack(spacing: 24) {
+                TimeFrameMenu(selectedTimeFrame: $selectedTimeFrame)
+
+                DurationList(title: LocalizedStringKey("Activities"), items: viewModel.activityTotals)
+
+                DurationList(title: LocalizedStringKey("Locations"), items: viewModel.locationTotals)
+
+                TotalDurationCard(duration: viewModel.totalDuration)
             }
-            .navigationTitle("Insights")
-            .background(Color(UIColor.systemGroupedBackground))
-            .onAppear {
-                viewModel.updateStats(entries: entries, timeFrame: selectedTimeFrame)
-            }
-            .onChange(of: selectedTimeFrame) { newTimeFrame in
-                viewModel.updateStats(entries: entries, timeFrame: newTimeFrame)
-            }
+            .padding()
+        }
+        .navigationTitle("Insights")
+        .background(Color(UIColor.systemGroupedBackground))
+        .onAppear {
+            viewModel.updateStats(entries: entries, timeFrame: selectedTimeFrame)
+        }
+        .onChange(of: selectedTimeFrame) { newTimeFrame in
+            viewModel.updateStats(entries: entries, timeFrame: selectedTimeFrame)
         }
     }
 }
@@ -104,7 +106,9 @@ struct TimeFrameMenu: View {
             ForEach(TimeFrame.allCases, id: \.self) { frame in
                 Button(frame.localizedString) { // <-- Change here!
                             selectedTimeFrame = frame
-                            print("TimeFrame changed to: \(selectedTimeFrame.localizedString)") // Optional: print localized string
+                            #if DEBUG
+                            print("TimeFrame changed to: \(selectedTimeFrame.localizedString)")
+                            #endif
                         }
             }
         } label: {
@@ -215,14 +219,4 @@ enum TimeFrame: String, CaseIterable {
                 return NSLocalizedString("Overall", comment: "Time frame filter option for overall time")
             }
         }
-}
-
-#Preview {
-    let mockEntries = [
-        TimeEntry(label: "Reading", location: "Home", startTime: Date().addingTimeInterval(-3600), endTime: Date()),
-        TimeEntry(label: "Workout", location: "Gym", startTime: Date().addingTimeInterval(-7200), endTime: Date().addingTimeInterval(-3600)),
-        TimeEntry(label: "Work", location: "Office", startTime: Date().addingTimeInterval(-14400), endTime: Date().addingTimeInterval(-7200))
-    ]
-
-    return StatsView(entries: mockEntries)
 }

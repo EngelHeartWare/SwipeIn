@@ -78,7 +78,7 @@ struct TutorialHomeOverlay: View {
                 }
                 .padding()
                 .frame(maxWidth: 350)
-                .background(Color.white.opacity(0.9))
+                .background(Color(UIColor.systemBackground).opacity(0.95))
                 .cornerRadius(20)
                 .shadow(radius: 10)
             }
@@ -101,7 +101,7 @@ struct TutorialListOverlay: View {
 
     // Define the tutorial steps as an array of strings
     private let tutorialSteps: [String] = [
-        "Long press an entry to modifiy it. You can change details and also delete the entry.",
+        "Long press an entry to modify it. You can change details and also delete the entry.",
         "With the buttons on the top you can add manual entries and export your list."
         
     ]
@@ -162,7 +162,7 @@ struct TutorialListOverlay: View {
                 }
                 .padding()
                 .frame(maxWidth: 350)
-                .background(Color.white.opacity(0.9))
+                .background(Color(UIColor.systemBackground).opacity(0.95))
                 .cornerRadius(20)
                 .shadow(radius: 10)
             }
