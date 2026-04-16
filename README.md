@@ -1,6 +1,6 @@
-# Swipe In
+# Swipe In ➡︎
 
-A native iOS application built with SwiftUI that allows users to track activities with a simple swipe gesture.
+> A native iOS application built with SwiftUI that allows users to track activities with a simple swipe gesture.
 
 [![Platform](https://img.shields.io/badge/Platform-iOS-blue.svg)](https://developer.apple.com/ios/)
 [![Swift](https://img.shields.io/badge/Swift-6.2-orange.svg)](https://swift.org)
