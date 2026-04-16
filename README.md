@@ -12,7 +12,7 @@ A native iOS application built with SwiftUI that allows users to track activitie
 
 ## 📱 Screenshots
 
-| [Screen 1 Alt Text] | [Screen 2 Alt Text] | [Screen 3 Alt Text] |
+| Home screen| Entries list | Insights |
 | :---: | :---: | :---: |
 | <img src="https://github.com/user-attachments/assets/99d015e0-366c-42d8-b7c6-a340bc78954c" width="220" /> | <img src="https://github.com/user-attachments/assets/3d73d4a7-4f3a-4acf-8c71-cad4d7b37269" width="220" /> | <img src="https://github.com/user-attachments/assets/0397febb-5734-444f-8465-5cb4fb0fc5ed" width="220" /> |
 
