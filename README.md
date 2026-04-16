@@ -11,9 +11,10 @@ A native iOS application built with SwiftUI that allows users to track activitie
 * **Feature 3:** On-deviec data storage
 
 ## 📱 Screenshots
-<img width="1320" height="2868" alt="screenshot_eng_1" src="https://github.com/user-attachments/assets/99d015e0-366c-42d8-b7c6-a340bc78954c" />
-<img width="1320" height="2868" alt="screenshot_eng_2" src="https://github.com/user-attachments/assets/3d73d4a7-4f3a-4acf-8c71-cad4d7b37269" />
-<img width="1320" height="2868" alt="screenshot_eng_3" src="https://github.com/user-attachments/assets/0397febb-5734-444f-8465-5cb4fb0fc5ed" />
+
+| [Screen 1 Alt Text] | [Screen 2 Alt Text] | [Screen 3 Alt Text] |
+| :---: | :---: | :---: |
+| <img src="https://github.com/user-attachments/assets/99d015e0-366c-42d8-b7c6-a340bc78954c" width="220" /> | <img src="https://github.com/user-attachments/assets/3d73d4a7-4f3a-4acf-8c71-cad4d7b37269" width="220" /> | <img src="https://github.com/user-attachments/assets/0397febb-5734-444f-8465-5cb4fb0fc5ed" width="220" /> |
 
 ## 🛠 Requirements
 * iOS [16.0]+
